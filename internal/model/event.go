@@ -11,7 +11,7 @@ type Event struct {
 	Description string
 	Location    string
 	DateTime    time.Time
-	UserID      int
+	UserID      int64
 }
 
 func (e *Event) Save() error {
@@ -28,6 +28,28 @@ func (e *Event) Save() error {
 	}
 	id, err := result.LastInsertId()
 	e.ID = id
+	return err
+}
+
+func (e *Event) Update() error {
+	query := `UPDATE events SET name=?, description=?, location=?, date_time=? WHERE id=?`
+	stmt, err := db.DB.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	_, err = stmt.Exec(e.Name, e.Description, e.Location, e.DateTime, e.UserID)
+	return err
+}
+
+func (e *Event) Delete() error {
+	query := `DELETE FROM events WHERE id=?`
+	stmt, err := db.DB.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	_, err = stmt.Exec(e.ID)
 	return err
 }
 
@@ -63,4 +85,26 @@ func GetEventById(id int64) (*Event, error) {
 	}
 
 	return &event, nil
+}
+
+func (e *Event) Register(userID int64) error {
+	query := `INSERT INTO registrations (event_id, user_id) VALUES (?, ?)`
+	stmt, err := db.DB.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	_, err = stmt.Exec(e.ID, userID)
+	return err
+}
+
+func (e *Event) CancelRegistration(userID int64) error {
+	query := `DELETE FROM registrations WHERE event_id=? AND user_id=?`
+	stmt, err := db.DB.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	_, err = stmt.Exec(e.ID, userID)
+	return err
 }
